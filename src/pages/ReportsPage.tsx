@@ -62,7 +62,7 @@ export default function ReportsPage() {
       ratings: { news: 5, timely: 4, human: 3 },
       internal_notes: '',
       placement_notes: '',
-      attachments: [{ id: 'a1', url: 'https://images.unsplash.com/photo-1677442d019cecf481b2ffd7eb6d9c2d?w=800&q=80', filename: 'ai-research.jpg', size: 0 }]
+      attachments: [{ id: 'a1', file_url: 'https://images.unsplash.com/photo-1677442d019cecf481b2ffd7eb6d9c2d?w=800&q=80', file_name: 'ai-research.jpg', file_size: 0 }]
     },
     {
       id: '2',
@@ -81,7 +81,7 @@ export default function ReportsPage() {
       ratings: { news: 4, timely: 3, human: 4 },
       internal_notes: '',
       placement_notes: '',
-      attachments: [{ id: 'a2', url: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80', filename: 'startup.jpg', size: 0 }]
+      attachments: [{ id: 'a2', file_url: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80', file_name: 'startup.jpg', file_size: 0 }]
     },
     {
       id: '3',
@@ -100,7 +100,7 @@ export default function ReportsPage() {
       ratings: { news: 5, timely: 5, human: 4 },
       internal_notes: '',
       placement_notes: '',
-      attachments: [{ id: 'a3', url: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=800&q=80', filename: 'research.jpg', size: 0 }]
+      attachments: [{ id: 'a3', file_url: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=800&q=80', file_name: 'research.jpg', file_size: 0 }]
     },
     {
       id: '4',
@@ -119,7 +119,7 @@ export default function ReportsPage() {
       ratings: { news: 5, timely: 3, human: 5 },
       internal_notes: '',
       placement_notes: '',
-      attachments: [{ id: 'a4', url: 'https://images.unsplash.com/photo-1578926314433-d66408a6d7ee?w=800&q=80', filename: 'art.jpg', size: 0 }]
+      attachments: [{ id: 'a4', file_url: 'https://images.unsplash.com/photo-1578926314433-d66408a6d7ee?w=800&q=80', file_name: 'art.jpg', file_size: 0 }]
     },
     {
       id: '5',
@@ -138,7 +138,7 @@ export default function ReportsPage() {
       ratings: { news: 4, timely: 4, human: 5 },
       internal_notes: '',
       placement_notes: '',
-      attachments: [{ id: 'a5', url: 'https://images.unsplash.com/photo-1576091160550-112173e7f275?w=800&q=80', filename: 'wellness.jpg', size: 0 }]
+      attachments: [{ id: 'a5', file_url: 'https://images.unsplash.com/photo-1576091160550-112173e7f275?w=800&q=80', file_name: 'wellness.jpg', file_size: 0 }]
     }
   ];
 
@@ -339,7 +339,7 @@ export default function ReportsPage() {
               </p>
             </div>
           ) : (
-            depsWithStories.map((dept, deptIdx) => {
+            depsWithStories.map((dept, _deptIdx) => {
               const deptStories = getDepartmentStories(dept);
               return (
                 <div key={dept} style={{

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import { useAuthStore } from './store/authStore';
 import type { Profile } from './lib/types';
@@ -21,7 +21,7 @@ import LoadingScreen from './components/LoadingScreen';
 import NavBar from './components/NavBar';
 
 function App() {
-  const { user, loading, setUser, setLoading, setError } = useAuthStore();
+  const { loading, setUser, setLoading, setError } = useAuthStore();
 
   useEffect(() => {
     // Check if user is logged in

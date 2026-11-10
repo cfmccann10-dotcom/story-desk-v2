@@ -67,7 +67,7 @@ export default function DashboardPage() {
     return Math.round((sum / tot) * 100);
   };
 
-  const ageDays = (createdAt: string): number => {
+  const _ageDays = (createdAt: string): number => {
     return Math.floor((Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24));
   };
 

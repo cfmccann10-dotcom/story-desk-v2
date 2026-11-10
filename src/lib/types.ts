@@ -1,4 +1,4 @@
-export type UserRole = "faculty" | "pr_lead" | "senior_manager";
+export type UserRole = 'faculty' | 'pr_lead' | 'senior_manager';
 
 export interface Profile {
   id: string;
@@ -9,7 +9,7 @@ export interface Profile {
   updated_at?: string;
 }
 
-export type StoryStatus = "New" | "Reviewing" | "Pitched" | "Placed" | "Declined" | "Archived" | "Covered Internally";
+export type StoryStatus = 'New' | 'Reviewing' | 'Pitched' | 'Placed' | 'Declined' | 'Archived' | 'Covered Internally';
 
 export interface Story {
   id: string;
@@ -25,7 +25,7 @@ export interface Story {
 
   subjects?: string[];
 
-  under_18: "Yes" | "No" | "Unsure";
+  under_18: 'Yes' | 'No' | 'Unsure';
   student_contact?: string | null;
 
   priority_score?: number;
@@ -46,18 +46,19 @@ export interface Story {
 
 export interface Attachment {
   id: string;
-  story_id: string;
-  file_url: string;
+  story_id?: string;
+  file_url?: string;
+  url?: string;
   file_name: string;
-  file_type: "image" | "document" | "video";
-  file_size: number;
-  created_at: string;
+  file_type?: 'image' | 'document' | 'video';
+  file_size?: number;
+  created_at?: string;
 }
 
 export interface StoryEvent {
   id: string;
   story_id: string;
-  event_type: "created" | "status_changed" | "scored" | "noted";
+  event_type: 'created' | 'status_changed' | 'scored' | 'noted';
   event_data: Record<string, unknown>;
   created_at: string;
 }
