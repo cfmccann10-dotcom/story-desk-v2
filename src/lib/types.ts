@@ -1,15 +1,15 @@
-export type UserRole = 'faculty' | 'pr_lead' | 'senior_manager';
+export type UserRole = "faculty" | "pr_lead" | "senior_manager";
 
 export interface Profile {
   id: string;
   email: string;
-  full_name: string;
-  role: UserRole;
-  created_at: string;
-  updated_at: string;
+  full_name?: string;
+  role?: UserRole;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export type StoryStatus = 'New' | 'Reviewing' | 'Pitched' | 'Placed' | 'Declined' | 'Archived';
+export type StoryStatus = "New" | "Reviewing" | "Pitched" | "Placed" | "Declined" | "Archived" | "Covered Internally";
 
 export interface Story {
   id: string;
@@ -19,27 +19,29 @@ export interface Story {
   category: string;
   status: StoryStatus;
 
-  submitter_id: string;
+  submitter_id?: string;
   submitter_name: string;
   submitter_email: string;
 
-  subjects: string[];
+  subjects?: string[];
 
-  under_18: 'Yes' | 'No' | 'Unsure';
-  student_contact: string;
+  under_18: "Yes" | "No" | "Unsure";
+  student_contact?: string | null;
 
-  priority_score: number;
-  ratings: {
+  priority_score?: number;
+  ratings?: {
     news?: number;
     timely?: number;
     human?: number;
+    balance?: number;
   };
 
-  placement_notes: string;
-  internal_notes: string;
+  placement_notes?: string;
+  internal_notes?: string;
+  attachments?: Attachment[];
 
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface Attachment {
@@ -47,7 +49,7 @@ export interface Attachment {
   story_id: string;
   file_url: string;
   file_name: string;
-  file_type: 'image' | 'document' | 'video';
+  file_type: "image" | "document" | "video";
   file_size: number;
   created_at: string;
 }
@@ -55,7 +57,7 @@ export interface Attachment {
 export interface StoryEvent {
   id: string;
   story_id: string;
-  event_type: 'created' | 'status_changed' | 'scored' | 'noted';
+  event_type: "created" | "status_changed" | "scored" | "noted";
   event_data: Record<string, unknown>;
   created_at: string;
 }
