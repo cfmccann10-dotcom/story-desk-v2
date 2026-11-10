@@ -1,0 +1,283 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../store/authStore';
+
+export default function HomePage() {
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      if (mode === 'signup') {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (error) throw error;
+        setError('Check your email to confirm your account');
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+      }
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="home-grid" style={{
+      minHeight: '100vh',
+      background: '#f1f0ed',
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 0
+    }}>
+      {/* Left Side - Sign In/Up */}
+      <div style={{
+        background: '#fff',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px',
+        borderRight: '1px solid #e0dfd9'
+      }}>
+        <div style={{
+          width: '100%',
+          maxWidth: '380px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '28px'
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-.02em' }}>
+              Story Desk
+            </div>
+            <div style={{ fontSize: '15px', color: '#8b8b88' }}>
+              PR Team Portal
+            </div>
+          </div>
+
+          <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '14px', fontWeight: 600, color: '#42433f' }}>
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                style={{
+                  padding: '14px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid #e0dfd9',
+                  fontSize: '15px',
+                  background: '#faf9f7',
+                  fontFamily: 'inherit',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '14px', fontWeight: 600, color: '#42433f' }}>
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                style={{
+                  padding: '14px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid #e0dfd9',
+                  fontSize: '15px',
+                  background: '#faf9f7',
+                  fontFamily: 'inherit',
+                }}
+              />
+            </div>
+
+            {error && (
+              <div style={{
+                background: error.includes('Check your email') ? 'oklch(0.95 0.05 120)' : 'oklch(0.96 0.045 60)',
+                color: error.includes('Check your email') ? 'oklch(0.42 0.11 120)' : 'oklch(0.42 0.11 55)',
+                borderRadius: '12px',
+                padding: '12px 14px',
+                fontSize: '14px',
+                lineHeight: '1.4',
+              }}>
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                padding: '18px 28px',
+                borderRadius: '999px',
+                background: 'oklch(0.52 0.23 277)',
+                color: '#fff',
+                fontSize: '16px',
+                fontWeight: 600,
+                border: 'none',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading ? 0.6 : 1,
+              }}
+            >
+              {loading ? 'Loading...' : mode === 'signin' ? 'Sign In' : 'Create Account'}
+            </button>
+          </form>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}>
+            <div style={{ flex: 1, height: '1px', background: '#e0dfd9' }} />
+            <div style={{ fontSize: '14px', color: '#8b8b88' }}>or</div>
+            <div style={{ flex: 1, height: '1px', background: '#e0dfd9' }} />
+          </div>
+
+          <button
+            onClick={() => {
+              setMode(mode === 'signin' ? 'signup' : 'signin');
+              setError('');
+            }}
+            style={{
+              padding: '14px 28px',
+              borderRadius: '999px',
+              background: '#f1f0ed',
+              color: '#42433f',
+              fontSize: '16px',
+              fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            {mode === 'signin' ? 'Create new account' : 'Sign in instead'}
+          </button>
+
+          <div style={{
+            fontSize: '13px',
+            color: '#8b8b88',
+            lineHeight: '1.5',
+            textAlign: 'center',
+          }}>
+            {mode === 'signin'
+              ? 'Sign in to access the dashboard and manage stories'
+              : 'Create an account to get started'
+            }
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side - Submit Story */}
+      <div style={{
+        background: '#f1f0ed',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px',
+      }}>
+        <div style={{
+          width: '100%',
+          maxWidth: '380px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '32px',
+          textAlign: 'center'
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{
+              fontSize: '44px',
+              fontWeight: 800,
+              letterSpacing: '-.03em',
+              lineHeight: 1,
+              color: '#17181a'
+            }}>
+              Have a Story?
+            </div>
+            <p style={{
+              fontSize: '18px',
+              color: '#8b8b88',
+              lineHeight: 1.5,
+              margin: 0
+            }}>
+              Submit stories about student achievements, faculty research, awards, and more.
+            </p>
+          </div>
+
+          <div style={{
+            background: '#fff',
+            borderRadius: '24px',
+            padding: '32px 28px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            boxShadow: '0 3px 14px rgba(23,24,26,.06)'
+          }}>
+            <div style={{
+              fontSize: '16px',
+              color: '#42433f',
+              lineHeight: 1.5
+            }}>
+              No account needed — fill out our simple form and share your story with us.
+            </div>
+
+            <button
+              onClick={() => navigate('/submit')}
+              style={{
+                padding: '18px 28px',
+                borderRadius: '999px',
+                background: 'oklch(0.52 0.23 277)',
+                color: '#fff',
+                fontSize: '16px',
+                fontWeight: 600,
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 10px 24px oklch(0.52 0.23 277 / .28)',
+              }}
+            >
+              Submit a Story
+            </button>
+          </div>
+
+          <p style={{
+            fontSize: '14px',
+            color: '#8b8b88',
+            margin: 0
+          }}>
+            Questions? Contact us at pr-media@mdx.ac.ae
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
