@@ -1,8 +1,11 @@
+import { useState } from 'react';
+import { supabase } from '../lib/supabase';
 import type { Story } from '../lib/types';
 
 interface StoryDetailModalProps {
   story: Story | null;
   onClose: () => void;
+  onUpdate?: (updatedStory: Story) => void;
 }
 
 const STATUSES = ['New', 'Reviewing', 'Pitched', 'Placed', 'Declined', 'Archived'];
@@ -16,11 +19,47 @@ const statusColors: Record<string, { bg: string; text: string }> = {
   Archived: { bg: '#f1f0ed', text: '#8b8b88' }
 };
 
-export default function StoryDetailModal({ story, onClose }: StoryDetailModalProps) {
+export default function StoryDetailModal({ story, onClose, onUpdate }: StoryDetailModalProps) {
+  const [internalNotes, setInternalNotes] = useState(story?.internal_notes || '');
+  const [placementNotes, setPlacementNotes] = useState(story?.placement_notes || '');
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+
   if (!story) return null;
 
   const ageDays = Math.floor((Date.now() - new Date(story.created_at).getTime()) / (1000 * 60 * 60 * 24));
   const ageText = ageDays === 0 ? 'submitted today' : ageDays === 1 ? '1 day old' : `${ageDays} days old`;
+
+  const handleSaveNotes = async () => {
+    setSaving(true);
+    setSaveMessage('');
+    try {
+      const { error } = await supabase
+        .from('stories')
+        .update({
+          internal_notes: internalNotes || null,
+          placement_notes: placementNotes || null,
+        })
+        .eq('id', story.id);
+
+      if (error) throw error;
+
+      setSaveMessage('✅ Notes saved');
+      if (onUpdate) {
+        onUpdate({
+          ...story,
+          internal_notes: internalNotes || undefined,
+          placement_notes: placementNotes || undefined,
+        });
+      }
+      setTimeout(() => setSaveMessage(''), 2000);
+    } catch (err: any) {
+      setSaveMessage('❌ Failed to save');
+      console.error('Failed to save notes:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div
@@ -338,57 +377,104 @@ export default function StoryDetailModal({ story, onClose }: StoryDetailModalPro
           </div>
         </div>
 
-        {/* Internal Notes */}
-        {story.internal_notes && (
-          <div style={{
-            borderTop: '1px solid #f0efec',
-            paddingTop: '22px'
+        {/* Context Notes Section */}
+        <div style={{
+          borderTop: '1px solid #f0efec',
+          paddingTop: '22px'
+        }}>
+          <h3 style={{
+            fontSize: '16px',
+            fontWeight: 700,
+            margin: '0 0 16px 0'
           }}>
-            <h3 style={{
-              fontSize: '16px',
-              fontWeight: 700,
-              margin: '0 0 12px 0'
+            Context & Notes
+          </h3>
+
+          {/* Internal Notes */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '13px',
+              fontWeight: 600,
+              color: '#8b8b88',
+              marginBottom: '8px'
             }}>
               Internal notes
-            </h3>
-            <div style={{
-              background: '#faf9f7',
-              borderRadius: '18px',
-              padding: '16px 18px',
-              fontSize: '15px',
-              lineHeight: 1.5,
-              color: '#42433f'
-            }}>
-              {story.internal_notes}
-            </div>
+            </label>
+            <textarea
+              value={internalNotes}
+              onChange={(e) => setInternalNotes(e.target.value)}
+              placeholder="Add internal context, research notes, or follow-up needed..."
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                borderRadius: '12px',
+                border: '1px solid #e0dfd9',
+                fontSize: '14px',
+                lineHeight: 1.5,
+                fontFamily: 'inherit',
+                boxSizing: 'border-box',
+                minHeight: '80px',
+                resize: 'vertical'
+              }}
+            />
           </div>
-        )}
 
-        {/* Placement Notes */}
-        {story.placement_notes && (
-          <div style={{
-            borderTop: '1px solid #f0efec',
-            paddingTop: '22px'
-          }}>
-            <h3 style={{
-              fontSize: '16px',
-              fontWeight: 700,
-              margin: '0 0 12px 0'
+          {/* Placement Notes */}
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '13px',
+              fontWeight: 600,
+              color: '#8b8b88',
+              marginBottom: '8px'
             }}>
               Placement notes
-            </h3>
-            <div style={{
-              background: '#faf9f7',
-              borderRadius: '18px',
-              padding: '16px 18px',
-              fontSize: '15px',
-              lineHeight: 1.5,
-              color: '#42433f'
-            }}>
-              {story.placement_notes}
-            </div>
+            </label>
+            <textarea
+              value={placementNotes}
+              onChange={(e) => setPlacementNotes(e.target.value)}
+              placeholder="Where was this placed? Publication, date, outlet..."
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                borderRadius: '12px',
+                border: '1px solid #e0dfd9',
+                fontSize: '14px',
+                lineHeight: 1.5,
+                fontFamily: 'inherit',
+                boxSizing: 'border-box',
+                minHeight: '80px',
+                resize: 'vertical'
+              }}
+            />
           </div>
-        )}
+
+          {/* Save Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              onClick={handleSaveNotes}
+              disabled={saving}
+              style={{
+                padding: '12px 24px',
+                borderRadius: '10px',
+                background: 'oklch(0.52 0.23 277)',
+                color: '#fff',
+                fontWeight: 600,
+                border: 'none',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                opacity: saving ? 0.6 : 1,
+              }}
+            >
+              {saving ? 'Saving...' : 'Save Context'}
+            </button>
+            {saveMessage && (
+              <span style={{ fontSize: '14px', color: saveMessage.includes('✅') ? '#42b45a' : '#d64545' }}>
+                {saveMessage}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       <style>{`
