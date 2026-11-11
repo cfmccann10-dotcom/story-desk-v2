@@ -25,11 +25,38 @@ export default function LoginPage() {
 
     try {
       if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({
+        // Check if email is approved in staff_members
+        const { data: staffMember } = await supabase
+          .from('staff_members')
+          .select('role, approved')
+          .eq('email', email)
+          .single();
+
+        if (!staffMember || !staffMember.approved) {
+          setError('You do not have permission to access this platform.');
+          setLoading(false);
+          return;
+        }
+
+        // Sign up the user
+        const { data: authData, error: signupError } = await supabase.auth.signUp({
           email,
           password,
         });
-        if (error) throw error;
+        if (signupError) throw signupError;
+
+        // Create profile with role from staff_members
+        if (authData.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: authData.user.id,
+              email: authData.user.email,
+              role: staffMember.role,
+            });
+          if (profileError) throw profileError;
+        }
+
         setError('Check your email to confirm your account');
       } else {
         const { error } = await supabase.auth.signInWithPassword({
