@@ -1,7 +1,14 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 export default function NavBar() {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
 
   const links = [
     { path: '/submit', label: 'Submit Story' },
@@ -56,6 +63,25 @@ export default function NavBar() {
           </Link>
         ))}
       </div>
+
+      <button
+        onClick={handleLogout}
+        style={{
+          background: 'none',
+          border: 'none',
+          color: '#8b8b88',
+          fontSize: '15px',
+          fontWeight: 500,
+          cursor: 'pointer',
+          transition: 'color 0.2s',
+          padding: '0',
+          textDecoration: 'underline',
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.color = '#42433f'}
+        onMouseLeave={(e) => e.currentTarget.style.color = '#8b8b88'}
+      >
+        Log Out
+      </button>
     </div>
   );
 }
