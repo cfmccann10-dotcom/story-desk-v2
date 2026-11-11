@@ -15,10 +15,13 @@ export default function SettingsPage() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [newEmail, setNewEmail] = useState('');
-  const [newRole, setNewRole] = useState<'editor' | 'reviewer' | 'viewer'>('reviewer');
+  const [newRole, setNewRole] = useState<'super_admin' | 'editor' | 'reviewer' | 'viewer'>('reviewer');
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const currentUserStaff = staff.find(s => s.email === user?.email);
+  const isSuperAdmin = currentUserStaff?.role === 'super_admin';
 
   useEffect(() => {
     loadStaff();
@@ -165,7 +168,7 @@ export default function SettingsPage() {
               </label>
               <select
                 value={newRole}
-                onChange={(e) => setNewRole(e.target.value as 'editor' | 'reviewer' | 'viewer')}
+                onChange={(e) => setNewRole(e.target.value as 'super_admin' | 'editor' | 'reviewer' | 'viewer')}
                 style={{
                   width: '100%',
                   padding: '12px 16px',
@@ -175,6 +178,7 @@ export default function SettingsPage() {
                   boxSizing: 'border-box',
                 }}
               >
+                {isSuperAdmin && <option value="super_admin">👑 Super Admin</option>}
                 <option value="reviewer">Reviewer</option>
                 <option value="editor">Editor</option>
                 <option value="viewer">Viewer</option>
