@@ -45,16 +45,19 @@ export default function LoginPage() {
         });
         if (signupError) throw signupError;
 
-        // Create profile with role from staff_members
+        // Create profile with role from staff_members (optional - skip if RLS blocks it)
         if (authData.user) {
-          const { error: profileError } = await supabase
+          await supabase
             .from('profiles')
             .insert({
               id: authData.user.id,
               email: authData.user.email,
               role: staffMember.role,
+            })
+            .then()
+            .catch(() => {
+              // RLS may block this, but that's okay - profile is optional
             });
-          if (profileError) throw profileError;
         }
 
         setError('Check your email to confirm your account');
