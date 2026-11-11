@@ -53,7 +53,7 @@ export default function StoryBankPage() {
 
   const getTestData = (): Story[] => [
     {
-      id: '1',
+      id: '550e8400-e29b-41d4-a716-446655440001',
       overview: 'AI Research Breakthrough in NLP',
       summary: 'Student led research project shows promising results in natural language processing',
       category: 'Research/Publication',
@@ -71,7 +71,7 @@ export default function StoryBankPage() {
       placement_notes: ''
     },
     {
-      id: '2',
+      id: '550e8400-e29b-41d4-a716-446655440002',
       overview: 'Business Student Wins Startup Competition',
       summary: 'Graduate launches innovative fintech solution',
       category: 'Student Success',
@@ -89,7 +89,7 @@ export default function StoryBankPage() {
       placement_notes: ''
     },
     {
-      id: '3',
+      id: '550e8400-e29b-41d4-a716-446655440003',
       overview: 'Faculty Member Published in Nature Journal',
       summary: 'Dr. Hassan publishes groundbreaking research on renewable energy',
       category: 'Faculty Achievement',
@@ -107,7 +107,7 @@ export default function StoryBankPage() {
       placement_notes: ''
     },
     {
-      id: '4',
+      id: '550e8400-e29b-41d4-a716-446655440004',
       overview: 'Student Wins International Art Award',
       summary: 'Contemporary art installation recognized globally',
       category: 'Award/Honor',
@@ -125,7 +125,7 @@ export default function StoryBankPage() {
       placement_notes: 'Featured in university newsletter'
     },
     {
-      id: '5',
+      id: '550e8400-e29b-41d4-a716-446655440005',
       overview: 'Psychology Research on Student Wellbeing',
       summary: 'New study reveals factors affecting mental health in university students',
       category: 'Research/Publication',

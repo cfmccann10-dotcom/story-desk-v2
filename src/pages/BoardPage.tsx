@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../store/authStore';
+import { loadViewerPermissions } from '../lib/permissionUtils';
 import type { Story } from '../lib/types';
 import StoryDetailModal from '../components/StoryDetailModal';
 
@@ -30,15 +32,35 @@ const statusColors: Record<string, { bg: string; text: string }> = {
 };
 
 export default function BoardPage() {
+  const { user } = useAuthStore();
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
+  const [canMove, setCanMove] = useState(true);
+  const [canEdit, setCanEdit] = useState(true);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [selectedDept, setSelectedDept] = useState<string>('All');
   const [draggedStory, setDraggedStory] = useState<Story | null>(null);
 
   useEffect(() => {
+    checkPermissions();
     loadStories();
   }, []);
+
+  const checkPermissions = async () => {
+    if (!user) return;
+
+    const { data: staffMember } = await supabase
+      .from('staff_members')
+      .select('role')
+      .eq('email', user.email)
+      .single();
+
+    if (staffMember?.role === 'viewer') {
+      const perms = await loadViewerPermissions();
+      setCanMove(perms.can_move_projects);
+      setCanEdit(perms.can_edit_projects);
+    }
+  };
 
   const loadStories = async () => {
     try {
@@ -60,7 +82,7 @@ export default function BoardPage() {
 
   const getTestData = (): Story[] => [
     {
-      id: '1',
+      id: '550e8400-e29b-41d4-a716-446655440001',
       overview: 'AI Research Breakthrough in NLP',
       summary: 'Student led research project shows promising results in natural language processing',
       category: 'Research/Publication',
@@ -78,7 +100,7 @@ export default function BoardPage() {
       placement_notes: ''
     },
     {
-      id: '2',
+      id: '550e8400-e29b-41d4-a716-446655440002',
       overview: 'Business Student Wins Startup Competition',
       summary: 'Graduate launches innovative fintech solution',
       category: 'Student Success',
@@ -96,7 +118,7 @@ export default function BoardPage() {
       placement_notes: ''
     },
     {
-      id: '3',
+      id: '550e8400-e29b-41d4-a716-446655440003',
       overview: 'Faculty Member Published in Nature Journal',
       summary: 'Dr. Hassan publishes groundbreaking research on renewable energy',
       category: 'Faculty Achievement',
@@ -114,7 +136,7 @@ export default function BoardPage() {
       placement_notes: ''
     },
     {
-      id: '4',
+      id: '550e8400-e29b-41d4-a716-446655440004',
       overview: 'Student Wins International Art Award',
       summary: 'Contemporary art installation recognized globally',
       category: 'Award/Honor',
@@ -151,6 +173,12 @@ export default function BoardPage() {
   };
 
   const updateStoryStatus = (story: Story, newStatus: string) => {
+    if (!canMove) {
+      alert('You do not have permission to move stories');
+      setDraggedStory(null);
+      return;
+    }
+
     setStories(stories.map(s => s.id === story.id ? { ...s, status: newStatus } : s));
     setDraggedStory(null);
 
@@ -201,10 +229,10 @@ export default function BoardPage() {
         </h1>
         <p style={{
           fontSize: '19px',
-          color: '#8b8b88',
+          color: canMove ? '#8b8b88' : '#d64545',
           margin: 0
         }}>
-          {filteredStories.length} stories · Drag cards to change status
+          {filteredStories.length} stories · {canMove ? 'Drag cards to change status' : '⛔ You do not have permission to move cards'}
         </p>
       </div>
 

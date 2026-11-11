@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../store/authStore';
+import { loadViewerPermissions } from '../lib/permissionUtils';
 import type { Story } from '../lib/types';
 
 const DEPARTMENTS = [
@@ -19,14 +21,32 @@ const DEPARTMENTS = [
 ];
 
 export default function ReportsPage() {
+  const { user } = useAuthStore();
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasPermission, setHasPermission] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
+    checkPermissions();
     loadStories();
   }, []);
+
+  const checkPermissions = async () => {
+    if (!user) return;
+
+    const { data: staffMember } = await supabase
+      .from('staff_members')
+      .select('role')
+      .eq('email', user.email)
+      .single();
+
+    if (staffMember?.role === 'viewer') {
+      const perms = await loadViewerPermissions();
+      setHasPermission(perms.can_view_reports);
+    }
+  };
 
   const loadStories = async () => {
     try {
@@ -46,7 +66,7 @@ export default function ReportsPage() {
 
   const getTestData = (): Story[] => [
     {
-      id: '1',
+      id: '550e8400-e29b-41d4-a716-446655440001',
       overview: 'AI Research Breakthrough in NLP',
       summary: 'Student led research project shows promising results in natural language processing',
       category: 'Research/Publication',
@@ -65,7 +85,7 @@ export default function ReportsPage() {
       attachments: [{ id: 'a1', file_url: 'https://images.unsplash.com/photo-1677442d019cecf481b2ffd7eb6d9c2d?w=800&q=80', file_name: 'ai-research.jpg', file_size: 0 }]
     },
     {
-      id: '2',
+      id: '550e8400-e29b-41d4-a716-446655440002',
       overview: 'Business Student Wins Startup Competition',
       summary: 'Graduate launches innovative fintech solution winning $50K in prize money',
       category: 'Student Success',
@@ -84,7 +104,7 @@ export default function ReportsPage() {
       attachments: [{ id: 'a2', file_url: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80', file_name: 'startup.jpg', file_size: 0 }]
     },
     {
-      id: '3',
+      id: '550e8400-e29b-41d4-a716-446655440003',
       overview: 'Faculty Member Published in Nature Journal',
       summary: 'Dr. Hassan publishes groundbreaking research on renewable energy solutions',
       category: 'Faculty Achievement',
@@ -103,7 +123,7 @@ export default function ReportsPage() {
       attachments: [{ id: 'a3', file_url: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=800&q=80', file_name: 'research.jpg', file_size: 0 }]
     },
     {
-      id: '4',
+      id: '550e8400-e29b-41d4-a716-446655440004',
       overview: 'Student Wins International Art Award',
       summary: 'Contemporary art installation recognized globally',
       category: 'Award/Honor',
@@ -122,7 +142,7 @@ export default function ReportsPage() {
       attachments: [{ id: 'a4', file_url: 'https://images.unsplash.com/photo-1578926314433-d66408a6d7ee?w=800&q=80', file_name: 'art.jpg', file_size: 0 }]
     },
     {
-      id: '5',
+      id: '550e8400-e29b-41d4-a716-446655440005',
       overview: 'Psychology Research on Student Wellbeing',
       summary: 'New longitudinal study reveals key factors affecting mental health in students',
       category: 'Research/Publication',
@@ -192,6 +212,52 @@ export default function ReportsPage() {
         justifyContent: 'center'
       }}>
         <div style={{ fontSize: '18px', color: '#8b8b88' }}>Loading reports...</div>
+      </div>
+    );
+  }
+
+  if (!hasPermission) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#f1f0ed',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px'
+      }}>
+        <div style={{
+          background: '#fff',
+          borderRadius: '28px',
+          padding: '60px 40px',
+          textAlign: 'center',
+          maxWidth: '500px',
+          boxShadow: '0 3px 14px rgba(23,24,26,.06)'
+        }}>
+          <div style={{
+            fontSize: '48px',
+            fontWeight: 800,
+            marginBottom: '16px',
+            color: '#d64545'
+          }}>
+            ⛔
+          </div>
+          <h1 style={{
+            fontSize: '28px',
+            fontWeight: 700,
+            margin: '0 0 12px 0'
+          }}>
+            Access Denied
+          </h1>
+          <p style={{
+            fontSize: '16px',
+            color: '#8b8b88',
+            margin: 0,
+            lineHeight: 1.6
+          }}>
+            You don't have permission to view reports. Contact your administrator for access.
+          </p>
+        </div>
       </div>
     );
   }

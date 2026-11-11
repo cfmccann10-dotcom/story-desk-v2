@@ -195,10 +195,6 @@ export default function StoryDetailModal({ story, onClose, onUpdate }: StoryDeta
             </div>
             <div style={{ fontSize: '16px', lineHeight: 1.4 }}>
               {story.submitter_name}
-              <br />
-              <span style={{ fontSize: '14px', color: '#8b8b88' }}>
-                {story.submitter_email}
-              </span>
             </div>
           </div>
 
