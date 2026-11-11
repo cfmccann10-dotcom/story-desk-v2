@@ -1,405 +1,316 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Story } from '../lib/types';
+import { useAuthStore } from '../store/authStore';
 
-interface ScoringWeights {
-  news: number;
-  timely: number;
-  balance: number;
-  human: number;
+interface StaffMember {
+  id: string;
+  email: string;
+  role: 'super_admin' | 'editor' | 'reviewer' | 'viewer';
+  approved: boolean;
+  created_at: string;
 }
 
 export default function SettingsPage() {
-  const [weights, setWeights] = useState<ScoringWeights>({
-    news: 35,
-    timely: 20,
-    balance: 20,
-    human: 25
-  });
-  const [stories, setStories] = useState<Story[]>([]);
+  const { user } = useAuthStore();
+  const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saved, setSaved] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [newRole, setNewRole] = useState<'editor' | 'reviewer' | 'viewer'>('reviewer');
+  const [adding, setAdding] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    loadStories();
+    loadStaff();
   }, []);
 
-  const loadStories = async () => {
+  const loadStaff = async () => {
     try {
-      const { data, error } = await supabase.from('stories').select('*');
-      if (error || !data) {
-        setStories(getTestData());
-      } else {
-        setStories(data);
-      }
+      const { data, error } = await supabase
+        .from('staff_members')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setStaff(data || []);
     } catch (err) {
-      console.error('Failed to load stories:', err);
-      setStories(getTestData());
+      console.error('Failed to load staff:', err);
+      setError('Failed to load staff members');
     } finally {
       setLoading(false);
     }
   };
 
-  const getTestData = (): Story[] => [
-    {
-      id: '1',
-      overview: 'AI Research Breakthrough',
-      summary: 'Student led research',
-      category: 'Research/Publication',
-      department: 'Computer Engineering and Informatics',
-      submitter_name: 'Dr. Ahmed',
-      submitter_email: 'ahmed@mdx.ac.ae',
-      subjects: ['AI'],
-      student_contact: 'student@example.com',
-      under_18: 'No',
-      status: 'Archived',
-      created_at: new Date().toISOString(),
-      priority_score: 85,
-      ratings: {},
-      internal_notes: '',
-      placement_notes: ''
-    }
-  ];
+  const handleAddStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setAdding(true);
 
-  const handleWeightChange = (key: keyof ScoringWeights, value: number) => {
-    const newWeights = { ...weights, [key]: value };
-    const total = Object.values(newWeights).reduce((a, b) => a + b, 0);
-    if (total <= 100) {
-      setWeights(newWeights);
-    }
-  };
-
-  const resetWeights = () => {
-    setWeights({ news: 35, timely: 20, balance: 20, human: 25 });
-  };
-
-  const saveWeights = async () => {
     try {
-      await supabase.from('scoring_config').upsert({
-        id: 'default',
-        news_weight: weights.news,
-        timely_weight: weights.timely,
-        balance_weight: weights.balance,
-        human_weight: weights.human
+      const { error } = await supabase.from('staff_members').insert({
+        email: newEmail,
+        role: newRole,
+        approved: true,
       });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch (err) {
-      console.error('Failed to save weights:', err);
+
+      if (error) throw error;
+      setSuccess(`✅ ${newEmail} added as ${newRole}`);
+      setNewEmail('');
+      setNewRole('reviewer');
+      await loadStaff();
+    } catch (err: any) {
+      setError(err.message || 'Failed to add staff member');
+    } finally {
+      setAdding(false);
     }
   };
 
-  const archivedStories = stories.filter(s => s.status === 'Archived');
-  const total = Object.values(weights).reduce((a, b) => a + b, 0);
+  const handleRemoveStaff = async (staffId: string, email: string) => {
+    if (!window.confirm(`Remove ${email}?`)) return;
 
-  if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: '#f1f0ed',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <div style={{ fontSize: '18px', color: '#8b8b88' }}>Loading settings...</div>
-      </div>
-    );
-  }
+    try {
+      const { error } = await supabase
+        .from('staff_members')
+        .delete()
+        .eq('id', staffId);
+
+      if (error) throw error;
+      setSuccess(`✅ ${email} removed`);
+      await loadStaff();
+    } catch (err: any) {
+      setError(err.message || 'Failed to remove staff member');
+    }
+  };
+
+  const handleChangeRole = async (staffId: string, newRole: string) => {
+    try {
+      const { error } = await supabase
+        .from('staff_members')
+        .update({ role: newRole })
+        .eq('id', staffId);
+
+      if (error) throw error;
+      setSuccess('✅ Role updated');
+      await loadStaff();
+    } catch (err: any) {
+      setError(err.message || 'Failed to update role');
+    }
+  };
 
   return (
     <div style={{
       minHeight: '100vh',
       background: '#f1f0ed',
-      padding: '40px'
+      padding: '40px',
     }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
-          {/* Header */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <h1 style={{
-              fontSize: '52px',
-              fontWeight: 800,
-              letterSpacing: '-.038em',
-              lineHeight: 1.02,
-              margin: 0
-            }}>
-              Settings
-            </h1>
-            <p style={{
-              fontSize: '19px',
-              color: '#8b8b88',
-              margin: 0
-            }}>
-              Configure scoring weights and archive management
-            </p>
-          </div>
-
-          {/* Scoring Weights */}
-          <div style={{
-            background: '#fff',
-            borderRadius: '28px',
-            padding: '32px 34px',
-            boxShadow: '0 3px 14px rgba(23,24,26,.06)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '28px'
+        {/* Header */}
+        <div style={{ marginBottom: '40px' }}>
+          <h1 style={{
+            fontSize: '52px',
+            fontWeight: 800,
+            letterSpacing: '-.038em',
+            lineHeight: 1.02,
+            margin: '0 0 8px 0',
           }}>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '6px'
-            }}>
-              <h2 style={{
-                fontSize: '28px',
-                fontWeight: 700,
-                margin: 0,
-                letterSpacing: '-.01em'
-              }}>
-                Priority Score Weights
-              </h2>
-              <p style={{
-                fontSize: '15px',
-                color: '#8b8b88',
-                margin: 0,
-                lineHeight: 1.5
-              }}>
-                Adjust how much each factor influences the priority score. Total must equal 100.
-              </p>
+            Admin Settings
+          </h1>
+          <p style={{
+            fontSize: '19px',
+            color: '#8b8b88',
+            margin: 0,
+          }}>
+            Manage staff members and permissions
+          </p>
+        </div>
+
+        {/* Add Staff Form */}
+        <div style={{
+          background: '#fff',
+          borderRadius: '28px',
+          padding: '32px 40px',
+          marginBottom: '32px',
+          boxShadow: '0 3px 14px rgba(23,24,26,.06)',
+        }}>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, margin: '0 0 24px 0' }}>
+            Add Staff Member
+          </h2>
+          
+          <form onSubmit={handleAddStaff} style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(3, 1fr)', alignItems: 'end' }}>
+            <div>
+              <label style={{ fontSize: '14px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>
+                Email
+              </label>
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="staff@example.com"
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  border: '1px solid #e0dfd9',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                }}
+              />
             </div>
 
+            <div>
+              <label style={{ fontSize: '14px', fontWeight: 600, display: 'block', marginBottom: '8px' }}>
+                Role
+              </label>
+              <select
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value as 'editor' | 'reviewer' | 'viewer')}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  border: '1px solid #e0dfd9',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <option value="reviewer">Reviewer</option>
+                <option value="editor">Editor</option>
+                <option value="viewer">Viewer</option>
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              disabled={adding}
+              style={{
+                padding: '12px 24px',
+                borderRadius: '10px',
+                background: 'oklch(0.52 0.23 277)',
+                color: '#fff',
+                fontWeight: 600,
+                border: 'none',
+                cursor: adding ? 'not-allowed' : 'pointer',
+                opacity: adding ? 0.6 : 1,
+              }}
+            >
+              {adding ? 'Adding...' : 'Add Staff'}
+            </button>
+          </form>
+
+          {error && (
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: '28px'
+              marginTop: '16px',
+              background: 'oklch(0.96 0.045 60)',
+              color: 'oklch(0.42 0.11 55)',
+              padding: '12px 16px',
+              borderRadius: '10px',
+              fontSize: '14px',
             }}>
-              {[
-                { key: 'news' as const, label: 'Newsworthiness', description: 'How newsworthy the story is' },
-                { key: 'timely' as const, label: 'Timeliness', description: 'How timely and current' },
-                { key: 'balance' as const, label: 'Department Balance', description: 'Balancing coverage' },
-                { key: 'human' as const, label: 'Human Interest', description: 'Personal connection' }
-              ].map(item => (
-                <div key={item.key} style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px'
-                }}>
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div style={{
+              marginTop: '16px',
+              background: 'oklch(0.95 0.05 120)',
+              color: 'oklch(0.42 0.11 120)',
+              padding: '12px 16px',
+              borderRadius: '10px',
+              fontSize: '14px',
+            }}>
+              {success}
+            </div>
+          )}
+        </div>
+
+        {/* Staff List */}
+        <div style={{
+          background: '#fff',
+          borderRadius: '28px',
+          padding: '32px 40px',
+          boxShadow: '0 3px 14px rgba(23,24,26,.06)',
+        }}>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, margin: '0 0 24px 0' }}>
+            Staff Members ({staff.length})
+          </h2>
+
+          {loading ? (
+            <div style={{ textAlign: 'center', color: '#8b8b88' }}>Loading...</div>
+          ) : staff.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#8b8b88' }}>No staff members</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {staff.map((member) => (
+                <div
+                  key={member.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '2fr 1fr 1fr 120px',
+                    alignItems: 'center',
+                    gap: '16px',
+                    padding: '16px',
+                    background: '#f7f6f3',
+                    borderRadius: '12px',
+                  }}
+                >
                   <div>
-                    <label style={{
-                      fontSize: '15px',
-                      fontWeight: 700,
-                      color: '#42433f',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      marginBottom: '8px'
-                    }}>
-                      <span>{item.label}</span>
-                      <span style={{ color: 'oklch(0.52 0.23 277)', fontSize: '18px' }}>
-                        {weights[item.key]}%
-                      </span>
-                    </label>
-                    <p style={{
-                      fontSize: '13px',
-                      color: '#8b8b88',
-                      margin: 0
-                    }}>
-                      {item.description}
-                    </p>
+                    <div style={{ fontWeight: 600 }}>{member.email}</div>
+                    <div style={{ fontSize: '12px', color: '#8b8b88' }}>
+                      Added {new Date(member.created_at).toLocaleDateString()}
+                    </div>
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={weights[item.key]}
-                    onChange={(e) => handleWeightChange(item.key, parseInt(e.target.value))}
-                    style={{
-                      width: '100%',
-                      height: '6px',
-                      borderRadius: '3px',
-                      background: '#e0dfd9',
-                      outline: 'none',
-                      WebkitAppearance: 'none',
-                      cursor: 'pointer'
-                    }}
-                  />
+
+                  <div style={{ fontWeight: 600, fontSize: '14px' }}>
+                    {member.role === 'super_admin' ? '👑 Super Admin' : member.role}
+                  </div>
+
+                  <div style={{ fontSize: '14px' }}>
+                    {member.role === 'super_admin' ? (
+                      <span style={{ color: '#42433f' }}>Cannot change</span>
+                    ) : (
+                      <select
+                        value={member.role}
+                        onChange={(e) => handleChangeRole(member.id, e.target.value)}
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #e0dfd9',
+                          fontSize: '12px',
+                        }}
+                      >
+                        <option value="reviewer">Reviewer</option>
+                        <option value="editor">Editor</option>
+                        <option value="viewer">Viewer</option>
+                      </select>
+                    )}
+                  </div>
+
+                  <div>
+                    {member.role !== 'super_admin' && (
+                      <button
+                        onClick={() => handleRemoveStaff(member.id, member.email)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          background: 'oklch(0.96 0.05 25)',
+                          color: 'oklch(0.48 0.17 25)',
+                          border: 'none',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
-
-            <div style={{
-              background: '#faf9f7',
-              borderRadius: '18px',
-              padding: '16px 18px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <div>
-                <div style={{
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  color: '#a8a7a1',
-                  marginBottom: '4px'
-                }}>
-                  TOTAL WEIGHT
-                </div>
-                <div style={{
-                  fontSize: '28px',
-                  fontWeight: 800,
-                  color: total === 100 ? 'oklch(0.52 0.23 277)' : '#d9534f'
-                }}>
-                  {total}%
-                </div>
-              </div>
-              {total !== 100 && (
-                <div style={{
-                  fontSize: '14px',
-                  color: '#d9534f',
-                  fontWeight: 600
-                }}>
-                  Must equal 100%
-                </div>
-              )}
-            </div>
-
-            <div style={{
-              display: 'flex',
-              gap: '12px'
-            }}>
-              <button
-                onClick={saveWeights}
-                disabled={total !== 100}
-                style={{
-                  flex: 1,
-                  padding: '16px 24px',
-                  borderRadius: '999px',
-                  background: total === 100 ? 'oklch(0.52 0.23 277)' : '#d3d1cb',
-                  color: '#fff',
-                  fontSize: '15px',
-                  fontWeight: 600,
-                  border: 'none',
-                  cursor: total === 100 ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {saved ? '✓ Saved' : 'Save Weights'}
-              </button>
-              <button
-                onClick={resetWeights}
-                style={{
-                  padding: '16px 24px',
-                  borderRadius: '999px',
-                  background: '#f1f0ed',
-                  color: '#42433f',
-                  fontSize: '15px',
-                  fontWeight: 600,
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                Reset
-              </button>
-            </div>
-          </div>
-
-          {/* Archive Management */}
-          <div style={{
-            background: '#fff',
-            borderRadius: '28px',
-            padding: '32px 34px',
-            boxShadow: '0 3px 14px rgba(23,24,26,.06)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '22px'
-          }}>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '6px'
-            }}>
-              <h2 style={{
-                fontSize: '28px',
-                fontWeight: 700,
-                margin: 0,
-                letterSpacing: '-.01em'
-              }}>
-                Archive Management
-              </h2>
-              <p style={{
-                fontSize: '15px',
-                color: '#8b8b88',
-                margin: 0
-              }}>
-                View and manage archived stories
-              </p>
-            </div>
-
-            {archivedStories.length === 0 ? (
-              <div style={{
-                textAlign: 'center',
-                padding: '40px 20px',
-                color: '#8b8b88'
-              }}>
-                <p style={{ fontSize: '15px', margin: '0 0 8px 0' }}>No archived stories yet</p>
-                <p style={{ fontSize: '13px', margin: 0, opacity: 0.7 }}>
-                  Stories moved to Archived will appear here
-                </p>
-              </div>
-            ) : (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px'
-              }}>
-                {archivedStories.map(story => (
-                  <div
-                    key={story.id}
-                    style={{
-                      background: '#faf9f7',
-                      borderRadius: '16px',
-                      padding: '16px 18px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px'
-                    }}>
-                      <div style={{
-                        fontSize: '15px',
-                        fontWeight: 600,
-                        color: '#42433f'
-                      }}>
-                        {story.overview}
-                      </div>
-                      <div style={{
-                        fontSize: '13px',
-                        color: '#8b8b88'
-                      }}>
-                        {story.department} · {new Date(story.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <button
-                      style={{
-                        padding: '10px 16px',
-                        borderRadius: '999px',
-                        background: 'oklch(0.52 0.23 277)',
-                        color: '#fff',
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        border: 'none',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Restore
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>
