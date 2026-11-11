@@ -30,15 +30,14 @@ function App() {
         const { data: { session } } = await supabase.auth.getSession();
 
         if (session?.user) {
-          // Fetch user profile
-          const { data: profile, error } = await supabase
+          // Fetch user profile (optional - may not exist yet)
+          const { data: profile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle();
 
-          if (error) throw error;
-          setUser(profile as Profile);
+          setUser(profile ? (profile as Profile) : { id: session.user.id, email: session.user.email } as Profile);
         } else {
           setUser(null);
         }
@@ -59,8 +58,8 @@ function App() {
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
-          .single();
-        setUser(profile as Profile);
+          .maybeSingle();
+        setUser(profile ? (profile as Profile) : { id: session.user.id, email: session.user.email } as Profile);
       } else {
         setUser(null);
       }
