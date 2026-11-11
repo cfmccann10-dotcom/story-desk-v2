@@ -10,6 +10,13 @@ interface StaffMember {
   created_at: string;
 }
 
+interface ViewerPermissions {
+  can_view_reports: boolean;
+  can_download_reports: boolean;
+  can_move_projects: boolean;
+  can_edit_projects: boolean;
+}
+
 export default function SettingsPage() {
   const { user } = useAuthStore();
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -19,12 +26,20 @@ export default function SettingsPage() {
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [viewerPermissions, setViewerPermissions] = useState<ViewerPermissions>({
+    can_view_reports: true,
+    can_download_reports: true,
+    can_move_projects: true,
+    can_edit_projects: true,
+  });
+  const [savingPermissions, setSavingPermissions] = useState(false);
 
   const currentUserStaff = staff.find(s => s.email === user?.email);
   const isSuperAdmin = currentUserStaff?.role === 'super_admin';
 
   useEffect(() => {
     loadStaff();
+    loadViewerPermissions();
   }, []);
 
   const loadStaff = async () => {
@@ -33,7 +48,7 @@ export default function SettingsPage() {
         .from('staff_members')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       setStaff(data || []);
     } catch (err) {
@@ -41,6 +56,37 @@ export default function SettingsPage() {
       setError('Failed to load staff members');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadViewerPermissions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('viewer_permissions')
+        .select('*')
+        .single();
+
+      if (data) {
+        setViewerPermissions(data);
+      }
+    } catch (err) {
+      console.error('Failed to load viewer permissions:', err);
+    }
+  };
+
+  const saveViewerPermissions = async () => {
+    setSavingPermissions(true);
+    try {
+      const { error } = await supabase
+        .from('viewer_permissions')
+        .upsert(viewerPermissions);
+
+      if (error) throw error;
+      setSuccess('✅ Viewer permissions updated');
+    } catch (err: any) {
+      setError(err.message || 'Failed to save permissions');
+    } finally {
+      setSavingPermissions(false);
     }
   };
 
@@ -316,6 +362,63 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
+
+        {/* Viewer Permissions */}
+        {isSuperAdmin && (
+          <div style={{
+            background: '#fff',
+            borderRadius: '28px',
+            padding: '32px 40px',
+            boxShadow: '0 3px 14px rgba(23,24,26,.06)',
+            marginTop: '32px',
+          }}>
+            <h2 style={{ fontSize: '22px', fontWeight: 700, margin: '0 0 24px 0' }}>
+              Viewer Permissions
+            </h2>
+            <p style={{ fontSize: '14px', color: '#8b8b88', marginBottom: '24px' }}>
+              Control what Viewer role can access
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+              {[
+                { key: 'can_view_reports', label: 'Can view reports' },
+                { key: 'can_download_reports', label: 'Can download reports' },
+                { key: 'can_move_projects', label: 'Can move projects' },
+                { key: 'can_edit_projects', label: 'Can edit projects' },
+              ].map(({ key, label }) => (
+                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={viewerPermissions[key as keyof ViewerPermissions]}
+                    onChange={(e) => setViewerPermissions({
+                      ...viewerPermissions,
+                      [key]: e.target.checked,
+                    })}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '14px', fontWeight: 500 }}>{label}</span>
+                </label>
+              ))}
+            </div>
+
+            <button
+              onClick={saveViewerPermissions}
+              disabled={savingPermissions}
+              style={{
+                padding: '12px 24px',
+                borderRadius: '10px',
+                background: 'oklch(0.52 0.23 277)',
+                color: '#fff',
+                fontWeight: 600,
+                border: 'none',
+                cursor: savingPermissions ? 'not-allowed' : 'pointer',
+                opacity: savingPermissions ? 0.6 : 1,
+              }}
+            >
+              {savingPermissions ? 'Saving...' : 'Save Permissions'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
